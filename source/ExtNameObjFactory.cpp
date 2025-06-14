@@ -9,7 +9,7 @@ namespace {
         if (!pFunc) {
             for (const Name2CreateFunc* i = cCreateTableExt; i < cCreateTableExtEnd; i += sizeof(Name2CreateFunc)) {
                 if (i->mName && MR::isEqualStringCase(i->mName, pName)) {
-                    // OSReport("ExtNameObjFactory: Created %s\n", i->mName);
+                    OSReport("ExtNameObjFactory: Created %s\n", i->mName);
                     return i;
                 }
             }

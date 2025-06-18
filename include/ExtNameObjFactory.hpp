@@ -2,7 +2,7 @@
 
 #include <revolution.h>
 #include <Game/NameObj/NameObj.hpp>
-#include "TestNameObj.hpp"
+#include "QuestionBlockDude.hpp"
 class NameObjFactory {
 public:
     struct Name2CreateFunc {
@@ -25,7 +25,7 @@ namespace {
 
     /// @brief Contains the new NameObjFactory entries,
     const Name2CreateFunc cCreateTableExt[] = {
-        {"TestNameObj", createNameObj<TestNameObj>,0}
+        {"QuestionBlockDude", createNameObj<QuestionBlockDude>,"QuestionBlockDude"}
     };
 
     /// @brief The end address of the cCreateTableExt table.

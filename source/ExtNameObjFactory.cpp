@@ -5,7 +5,6 @@
 namespace {
     const Name2CreateFunc* getName2CreateFuncExt(const char* pName, const Name2CreateFunc* pTable) {
         const Name2CreateFunc* pFunc = NameObjFactory::getName2CreateFunc(pName, pTable);
-
         if (!pFunc) {
             for (const Name2CreateFunc* i = cCreateTableExt; i < cCreateTableExtEnd; i += sizeof(Name2CreateFunc)) {
                 if (i->mName && MR::isEqualStringCase(i->mName, pName)) {

@@ -11,10 +11,13 @@ public:
     virtual ~QuestionBlockDude();
     virtual void init(const JMapInfoIter &);
     virtual void kill();
+    virtual void attackSensor(HitSensor *, HitSensor *);
+    virtual bool receiveMsgPush(HitSensor *, HitSensor *);
     virtual bool receiveMsgPlayerAttack(u32, HitSensor *, HitSensor *);
     virtual bool receiveMsgEnemyAttack(u32, HitSensor *, HitSensor *);
 
     void exeWait();
+    void exeDead();
     void exeWalk();
 
     bool mBodyCheck;

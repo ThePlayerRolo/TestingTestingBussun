@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Game/LiveActor/LiveActor.hpp"
-
+#include "Game/MapObj/BenefitItemObj.hpp"
 
 
 class QuestionBlockDude: public LiveActor {
@@ -10,5 +10,17 @@ public:
 
     virtual ~QuestionBlockDude();
     virtual void init(const JMapInfoIter &);
-    s32 RandomStuff;
+    virtual void kill();
+    virtual bool receiveMsgPlayerAttack(u32, HitSensor *, HitSensor *);
+    virtual bool receiveMsgEnemyAttack(u32, HitSensor *, HitSensor *);
+
+    void exeWait();
+    void exeWalk();
+
+    bool mBodyCheck;
+    f32 mBodyFrame;
+    u32 mItemCase;
+    s32 mPowerStarId;
+    BenefitItemObj* mOneUp;
+    BenefitItemLifeUp* mPowerMushroom;
 };

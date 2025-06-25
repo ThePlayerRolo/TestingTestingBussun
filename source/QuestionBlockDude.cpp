@@ -2,8 +2,11 @@
 #include <Game/Util/StringUtil.hpp>
 #include "Game/NPC/NPCActorItem.hpp"
 #include "Game/MapObj/BenefitItemLifeUp.hpp"
-
-
+#include "Game/Util/ObjUtil.hpp"
+#include <Game/MapObj/Coin.hpp>
+#include "Game/LiveActor/LiveActor.hpp"
+#include "Game/NameObj/NameObj.hpp"
+#include "Game/Util/ActorMovementUtil.hpp"
 namespace NrvQuestionBlockDude {
     NEW_NERVE(NrvQuestionBlockDudeWalk, QuestionBlockDude, Walk);
     NEW_NERVE(NrvQuestionBlockDudeWait, QuestionBlockDude, Wait);
@@ -16,8 +19,8 @@ QuestionBlockDude::QuestionBlockDude(const char * pName) : LiveActor(pName) {
     mBodyFrame = 0.0f;
     mItemCase = 0;
     mPowerStarId = 0;
-    mOneUp = nullptr;
-    mPowerMushroom = nullptr;
+    mItem = nullptr;
+    mVel.zero();
 }
 
 QuestionBlockDude::~QuestionBlockDude() {}
@@ -33,11 +36,13 @@ QuestionBlockDude::~QuestionBlockDude() {}
 void QuestionBlockDude::init(const JMapInfoIter &rIter) {
     MR::initDefaultPos(this,rIter);
     initModelManagerWithAnm("QuestionBlockDude", nullptr, false);
+    MR::onCalcGravity(this);
     initHitSensor(2);
     initSound(4, false);
-    MR::connectToSceneMapObjStrongLight(this);
+    MR::connectToSceneEnemy(this);
     MR::addHitSensorEnemy(this, "body", 8, 70.0f, TVec3f(0.0f, 0.0f, 0.0f));
     MR::addHitSensorEnemyAttack(this, "attack", 8, 0.0f, TVec3f(0.0f, 0.0f, 0.0f));
+    initBinder(30.0f, 30.0f, 0);
     MR::validateHitSensors(this);
     MR::getJMapInfoArg0NoInit(rIter, &mBodyCheck);
     MR::getJMapInfoArg1NoInit(rIter, &mBodyFrame);
@@ -55,18 +60,27 @@ void QuestionBlockDude::init(const JMapInfoIter &rIter) {
         MR::declareCoin(this, 1);
         break;
         case 2:
-        mOneUp = MR::createKinokoOneUp();
-        MR::setShadowDropLength(mOneUp, nullptr, 500.0f);
+        mItem = MR::createKinokoOneUp();
         break;
         case 3:
-        mPowerMushroom = MR::createKinokoSuper();
-        MR::setShadowDropLength(mPowerMushroom, nullptr, 500.0f);
+        mItem = MR::createKinokoSuper();
         break;
         case 4: //Todo: Test This, yeah.
+        case 5:
+        case 6:
         MR::declarePowerStar(this, mPowerStarId);
         break;
+        case 7:
+        mPurpleCoin = (Coin*)(MR::createPurpleCoin(this, "Coin1"));
+        break;
+    }
+    if (mItem != nullptr) {
+        MR::setShadowDropLength(mItem, nullptr, 500.0f);
+        mItem->mPosition.set(mPosition);
+        MR::initDefaultPos(mItem, rIter);
     }
     initNerve(&NrvQuestionBlockDude::NrvQuestionBlockDudeWait::sInstance);
+    MR::onCalcGravity(this);
     makeActorAppeared();
 }
 
@@ -80,13 +94,20 @@ void QuestionBlockDude::kill() {
         MR::appearCoinPop(this, mPosition, 1);
         break;
         case 2:
-        MR::appearKinokoOneUpPop(mOneUp, getBaseMtx(), 15.0f);
-        break;
         case 3:
-        MR::appearKinokoSuper(mPowerMushroom, getBaseMtx(), 15.0f);
+        MR::appearKinokoOneUpPop(mItem, getBaseMtx(), 15.0f);
         break;
         case 4:
+        case 5:
+        case 6:
         MR::requestAppearPowerStar(this, mPowerStarId, mPosition);
+        break;
+
+        case 7:
+        TVec3f gravityVec;
+        MR::calcGravityVector(this, mPosition, &gravityVec, 0, 0);
+        gravityVec.scale(-25.0f);
+        mPurpleCoin->appearMove(mPosition, gravityVec, 500,0);
         break;
     }
     LiveActor::kill();
@@ -101,8 +122,17 @@ void QuestionBlockDude::exeWalk() {
     if (MR::isFirstStep(this)) {
         MR::startBck(this, "Walk", nullptr);
     }
+    if (!MR::isOnGround(this)) {
+        MR::addVelocityToGravity(this, 1.5f);
+    }
+    mVel.z += 0.05f;
+    if (mVel.z < 1.0f) {
+        MR::addVelocity(this, mVel);
+    }
+    if (MR::isBindedWall(this)) {
+        MR::calcReboundVelocity(&mVelocity, *MR::getWallNormal(this), 0.2f, 0.69f);
+    }
 }
-
 void QuestionBlockDude::exeDead() {
     if (MR::isFirstStep(this)) {
         MR::stopBck(this);
@@ -123,7 +153,7 @@ void QuestionBlockDude::attackSensor(HitSensor* pSender, HitSensor* pReceiver) {
 
 
 bool QuestionBlockDude::receiveMsgPush(HitSensor* pSender, HitSensor* pReceiver) {
-
+    return false;
 }
 
 bool QuestionBlockDude::receiveMsgPlayerAttack(u32 msg, HitSensor* pSender, HitSensor* pReceiver) {
@@ -131,6 +161,7 @@ bool QuestionBlockDude::receiveMsgPlayerAttack(u32 msg, HitSensor* pSender, HitS
         setNerve(&NrvQuestionBlockDude::NrvQuestionBlockDudeDead::sInstance);
         return true;
     }
+    return false;
 }
 
 bool QuestionBlockDude::receiveMsgEnemyAttack(u32 msg, HitSensor* pSender, HitSensor* pReceiver) {
@@ -138,6 +169,7 @@ bool QuestionBlockDude::receiveMsgEnemyAttack(u32 msg, HitSensor* pSender, HitSe
         OSReport("recieveEnemyAttack!\n");
         return true;
     }
+    return false;
 }
 
 /*
@@ -146,18 +178,9 @@ And then later on, use MR::onSwitchA/B/Dead
 Then simply link that switch with an SW_APPEAR of another object
 for hitsensors use initHitSensor, MR::addHitSenser and overload the existing LiveActor functions for hitsensor collision
 
-first one: HitSensor* pSender, HitSensor* pReceiver
 
-bottom 2: u32 msg, HitSensor* pSender, HitSensor* pReceiver
-Difference Between player and enemy
-is Caller.
-
-void RingBeamer::attackSensor(HitSensor *pSender, HitSensor *pReceiver){
-    if(MR::isSensorPlayerOrRide(pReceiver) && MR::isSensorEnemyAttack(pSender)){
-        MR::sendMsgEnemyAttackStrong(pReceiver,pSender);
-    }else{
-        MR::sendMsgPush(pReceiver,pSender);
-    }
-}
 sendMsgPush is pushing hitsensors outside of others
+mTranslation
+rVelocity is up to me
+lifeTime is how long it lasts, and cannotTime is the time frame of intangibility before the coin is collectable
 */

@@ -2,6 +2,7 @@
 
 #include "Game/LiveActor/LiveActor.hpp"
 #include "Game/MapObj/BenefitItemObj.hpp"
+#include <Game/MapObj/Coin.hpp>
 
 
 class QuestionBlockDude: public LiveActor {
@@ -24,6 +25,7 @@ public:
     f32 mBodyFrame;
     u32 mItemCase;
     s32 mPowerStarId;
-    BenefitItemObj* mOneUp;
-    BenefitItemLifeUp* mPowerMushroom;
+    BenefitItemObj* mItem;
+    Coin* mPurpleCoin;
+    TVec3f mVel;
 };

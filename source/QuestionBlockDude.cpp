@@ -21,6 +21,7 @@ QuestionBlockDude::QuestionBlockDude(const char * pName) : LiveActor(pName) {
     mPowerStarId = 0;
     mItem = nullptr;
     mVel.zero();
+    mDeathToBlackHole = false;
 }
 
 QuestionBlockDude::~QuestionBlockDude() {}
@@ -39,7 +40,9 @@ void QuestionBlockDude::init(const JMapInfoIter &rIter) {
     MR::onCalcGravity(this);
     initHitSensor(2);
     initSound(4, false);
+    MR::initShadowVolumeSphere(this, 60.0f);
     MR::connectToSceneEnemy(this);
+    MR::makeQuatAndFrontFromRotate(&mRotationQuat, &mRotationVec, this);
     MR::addHitSensorEnemy(this, "body", 8, 70.0f, TVec3f(0.0f, 0.0f, 0.0f));
     MR::addHitSensorEnemyAttack(this, "attack", 8, 0.0f, TVec3f(0.0f, 0.0f, 0.0f));
     initBinder(30.0f, 30.0f, 0);
@@ -81,44 +84,50 @@ void QuestionBlockDude::init(const JMapInfoIter &rIter) {
     }
     initNerve(&NrvQuestionBlockDude::NrvQuestionBlockDudeWait::sInstance);
     MR::onCalcGravity(this);
+    MR::onCalcShadow(this, nullptr);
     makeActorAppeared();
 }
 
 void QuestionBlockDude::kill() {
-    switch (mItemCase) {
-        case 0:
-        MR::appearStarPiece(this, mPosition, 3, 10.0f, 40.0f, false);
-        MR::startSound(this, "SE_OJ_STAR_PIECE_BURST", -1, -1);
-        break;
-        case 1:
-        MR::appearCoinPop(this, mPosition, 1);
-        break;
-        case 2:
-        case 3:
-        MR::appearKinokoOneUpPop(mItem, getBaseMtx(), 15.0f);
-        break;
-        case 4:
-        case 5:
-        case 6:
-        MR::requestAppearPowerStar(this, mPowerStarId, mPosition);
-        break;
-
-        case 7:
-        TVec3f gravityVec;
-        MR::calcGravityVector(this, mPosition, &gravityVec, 0, 0);
-        gravityVec.scale(-25.0f);
-        mPurpleCoin->appearMove(mPosition, gravityVec, 500,0);
-        break;
+    if (!mDeathToBlackHole) {
+        switch (mItemCase) {
+            case 0:
+            MR::appearStarPiece(this, mPosition, 3, 10.0f, 40.0f, false);
+            MR::startSound(this, "SE_OJ_STAR_PIECE_BURST", -1, -1);
+            break;
+            case 1:
+            MR::appearCoinPop(this, mPosition, 1);
+            break;
+            case 2:
+            case 3:
+            MR::appearKinokoOneUpPop(mItem, getBaseMtx(), 15.0f);
+            break;
+            case 4:
+            case 5:
+            case 6:
+            MR::requestAppearPowerStar(this, mPowerStarId, mPosition);
+            break;
+            case 7:
+            TVec3f gravityVec;
+            MR::calcGravityVector(this, mPosition, &gravityVec, 0, 0);
+            gravityVec.scale(-25.0f);
+            mPurpleCoin->appearMove(mPosition, gravityVec, 500,0);
+            break;
+        }
     }
     LiveActor::kill();
 }
 
+void QuestionBlockDude::calcAndSetBaseMtx() {
+    MR::setBaseTRMtx(this, mRotationQuat);
+}
 void QuestionBlockDude::exeWait() {
     if (MR::isFirstStep(this)) {
         setNerve(&NrvQuestionBlockDude::NrvQuestionBlockDudeWalk::sInstance);
     }
 }
 void QuestionBlockDude::exeWalk() {
+    f32 prevVelocityY = mVelocity.y;
     if (MR::isFirstStep(this)) {
         MR::startBck(this, "Walk", nullptr);
     }
@@ -132,8 +141,13 @@ void QuestionBlockDude::exeWalk() {
     if (MR::isBindedWall(this)) {
         MR::calcReboundVelocity(&mVelocity, *MR::getWallNormal(this), 0.2f, 0.69f);
     }
+
+    mRotationQuat.getZDir(mRotationVec);
+    MR::blendQuatFromGroundAndFront(&mRotationQuat, this, mRotationVec, 0.05f, 0.5f);
+    OSReport("X: %f Y: %f Z: %f\n", mRotation.x, mRotation.y, mRotation.z);
 }
 void QuestionBlockDude::exeDead() {
+    mVelocity.zero();
     if (MR::isFirstStep(this)) {
         MR::stopBck(this);
         MR::startBck(this, "Die", nullptr);
@@ -159,6 +173,15 @@ bool QuestionBlockDude::receiveMsgPush(HitSensor* pSender, HitSensor* pReceiver)
 bool QuestionBlockDude::receiveMsgPlayerAttack(u32 msg, HitSensor* pSender, HitSensor* pReceiver) {
     if (MR::isSensorPlayer(pSender)) {
         setNerve(&NrvQuestionBlockDude::NrvQuestionBlockDudeDead::sInstance);
+        return true;
+    }
+    return false;
+}
+
+bool QuestionBlockDude::receiveOtherMsg(u32 msg, HitSensor* pSender, HitSensor* pReciever) {
+    if (MR::isMsgInhaleBlackHole(msg)) {
+        mDeathToBlackHole = true;
+        kill();
         return true;
     }
     return false;

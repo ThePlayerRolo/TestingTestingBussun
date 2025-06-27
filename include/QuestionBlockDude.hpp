@@ -12,11 +12,13 @@ public:
     virtual ~QuestionBlockDude();
     virtual void init(const JMapInfoIter &);
     virtual void kill();
+    virtual void calcAndSetBaseMtx();
     virtual void attackSensor(HitSensor *, HitSensor *);
+    virtual bool receiveOtherMsg(u32, HitSensor*, HitSensor*);
     virtual bool receiveMsgPush(HitSensor *, HitSensor *);
     virtual bool receiveMsgPlayerAttack(u32, HitSensor *, HitSensor *);
     virtual bool receiveMsgEnemyAttack(u32, HitSensor *, HitSensor *);
-
+    
     void exeWait();
     void exeDead();
     void exeWalk();
@@ -28,4 +30,7 @@ public:
     BenefitItemObj* mItem;
     Coin* mPurpleCoin;
     TVec3f mVel;
+    bool mDeathToBlackHole;
+    TQuat4f mRotationQuat;
+    TVec3f  mRotationVec;
 };

@@ -127,24 +127,26 @@ void QuestionBlockDude::exeWait() {
     }
 }
 void QuestionBlockDude::exeWalk() {
-    f32 prevVelocityY = mVelocity.y;
-    if (MR::isFirstStep(this)) {
+if (MR::isFirstStep(this)) {
         MR::startBck(this, "Walk", nullptr);
     }
     if (!MR::isOnGround(this)) {
         MR::addVelocityToGravity(this, 1.5f);
     }
+    
+
     mVel.z += 0.05f;
-    if (mVel.z < 1.0f) {
+    if (mVel.z < 0.5f) {
         MR::addVelocity(this, mVel);
     }
+
     if (MR::isBindedWall(this)) {
         MR::calcReboundVelocity(&mVelocity, *MR::getWallNormal(this), 0.2f, 0.69f);
     }
 
     mRotationQuat.getZDir(mRotationVec);
     MR::blendQuatFromGroundAndFront(&mRotationQuat, this, mRotationVec, 0.05f, 0.5f);
-    OSReport("X: %f Y: %f Z: %f\n", mRotation.x, mRotation.y, mRotation.z);
+    mRotation.y = 0;
 }
 void QuestionBlockDude::exeDead() {
     mVelocity.zero();
